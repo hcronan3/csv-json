@@ -1,13 +1,13 @@
 package edu.jsu.mcis;
 
-import java.io.*;
-import java.util.*;
 import au.com.bytecode.opencsv.*;
 import org.json.simple.*;
 import org.json.simple.parser.*;
+import java.io.*;
+import java.util.*;
 
 public class Converter {
-	
+
     /*
         Consider a CSV file like the following:
         
@@ -24,7 +24,7 @@ public class Converter {
         The corresponding JSON file would be as follows (note the curly braces):
         
         {
-            "colHeaders":["Total","Assignment 1","Assignment 2","Exam 1"],
+            "colHeaders":["ID","Total","Assignment 1","Assignment 2","Exam 1"],
             "rowHeaders":["111278","111352","111373","111305","111399","111160","111276","111241"],
             "data":[[611,146,128,337],
                     [867,227,228,412],
@@ -37,27 +37,148 @@ public class Converter {
             ]
         }  
     */
+
+    @SuppressWarnings("unchecked")
+    //method for converting csv data to json format
+    public static String csvToJson(String csvString) {
+        
+         
+        /* Create StringBuilder for JSON data */
+        
+        StringBuilder json = new StringBuilder();
+        
+        try{
+            
+            /* Create CSVReader and iterator */
+            
+            CSVReader reader = new CSVReader(new StringReader(csvString));
+            List<String[]> csv = reader.readAll();
+            Iterator<String[]> iterator = csv.iterator();
+            
+            JSONArray rHeaders = new JSONArray();
+            JSONArray cHeaders = new JSONArray();
+            JSONArray data = new JSONArray();
+            String[] rows;
+
+            /* Get first String[] array from CSV data (the column headers); add elements to "cHeaders" */
+            
+            cHeaders.addAll(Arrays.asList(iterator.next()));
+
+            /* Iterate through remaining CSV rows */
+
+            while (iterator.hasNext()){
+                
+                /* Create container for next row */
+                
+                JSONArray row = new JSONArray();
+                
+                /* Get next String[] array from CSV data */
+                
+                rows = iterator.next();
+                
+                /* Get first element (the row header); add element to "rHeaders" */
+                
+                rHeaders.add(rows[0]);
+                
+                /* Add remaining elements to "data" */
+                
+                for (int i = 1; i < rows.length; i++){
+                    row.add(rows[i]);
+                }
+                
+                /* Add row to "data" */
+                
+                data.add(row);
+
+            }
+
+            /* Construct JSON string (remember, this must be an *exact* match for the example!) */
+            
+            /* Add column and row headers */
+
+            json.append("{\n    \"colHeaders\":").append(cHeaders.toString());
+            json.append(",\n    \"rowHeaders\":").append(rHeaders.toString()).append(",\n");
+            
+            /* Split "data" rows */
+            
+            rows = data.toString().split("],");
+            
+            /* Add data */
+
+            json.append("    \"data\":");
+
+            for (int i = 0; i < rows.length; ++i){
+                
+                String s = rows[i];         /* Get next data row */
+
+                s = s.replace("\"","");     /* Delete double-quotes */
+                s = s.replace("]]","]");    /* Fix terminating square brackets */
+                
+                json.append(s);             /* Append row */
+                
+                 /* If this is not the last data row, close the row and begin a new one */
+                
+                if ((i % rows.length) != (rows.length - 1))
+                    json.append("],\n            ");
+                
+            }
+            
+            /* Close JSON string */
+            
+            json.append("\n    ]\n}");
+            
+        }
+        
+        catch(IOException e) {
+            System.err.println(e.toString());
+        }
+        
+        /* Return JSON String */
+        
+        return json.toString();
+        
+    }
+        
+    @SuppressWarnings("unchecked")
+    //method for converting json data to csv format
+    public static String jsonToCsv(String jsonString) {
+        //initializes a new JSONObject
+        JSONObject jsonObject = null;  
+		String csvString ="";
+
+        //creates parser and parses the string passed through
+        try { 
+            JSONParser parser = new JSONParser();  
+            jsonObject = (JSONObject)parser.parse(jsonString);  
+
+			JSONArray colHeaders = (JSONArray) jsonObject.get("colHeaders");  
+			JSONArray rowHeaders = (JSONArray)jsonObject.get("rowHeaders");
+			JSONArray data = (JSONArray)jsonObject.get("data");
+			
+			csvString = Converter.<String>joinArray((JSONArray) colHeaders) + "\n";  
+
+			for(int i = 0; i < rowHeaders.size(); i++) { 
+				csvString  = (csvString + "\"" + (String)rowHeaders.get(i) + "\"," + Converter.<Long>joinArray((JSONArray) data.get(i)) + "\n");  
+			}
+        }
+            catch(Exception e) {}
+
+
+        return csvString;
+
+    }
     
     @SuppressWarnings("unchecked")
-    public static String csvToJson(String csvString) {
-        return "";
+    //method for joining JSONObject data from an array into a string in csv format
+    private static <T> String joinArray(JSONArray array) {
+        String line = "";
+        for(int i = 0; i < array.size(); i++) {
+            line = (line + "\"" + ((T) array.get(i)) + "\"");
+            if(i < array.size() - 1) {
+                line = line + ",";            
+            }
+        }
+        return line;
     }
     
-    public static String jsonToCsv(String jsonString) {
-        return "";
-    }
-	
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
